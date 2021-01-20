@@ -4,7 +4,7 @@
 
 if ! type pv mediainfo HandBrakeCLI  &> /dev/null
 then
-    echo "*** Make sure ffmpeg, pv, and mediainfo are installed! ***"
+    echo "*** Make sure HandbrakeCLI,ffmpeg, pv, and mediainfo are installed! ***"
     exit
 fi
 
