@@ -1,0 +1,22 @@
+#!/usr/bin/bash
+# Convert Folder including subdirectories to H265
+# DELETES files after conversion
+
+if ! type pv mediainfo HandBrakeCLI  &> /dev/null
+then
+    echo "*** Make sure ffmpeg, pv, and mediainfo are installed! ***"
+    exit
+fi
+
+find . -type f \( -name "*.avi" -o -name "*.mp4" -o -name "*.mkv" ! -name "*265*" \) -exec sh -c '
+  for f do
+                OLD=$(du -h "$f"| cut -f 1)
+                
+                echo "Converting "$f""
+                mediainfo "$f"|grep HEVC || pv -c -pte "$f" | HandBrakeCLI --preset-import-file "/home/bob/Desktop/H.265 Custom.json" -i "$f" \ 
+                -o "{f%.*}-H265.mkv && rm -rf "$f"        
+                
+                NEW=$(du -h "${f%.*}"-H265.mkv | cut -f 1)
+                echo "Original Size = "$OLD"" 
+                echo "New Size = "$NEW"" 
+done  ' sh {} +
