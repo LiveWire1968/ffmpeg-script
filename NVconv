@@ -2,22 +2,28 @@
 # Convert Folder including subdirectories to H265
 # DELETES files after conversion
 
+if ! type pv mediainfo ffmpeg  &> /dev/null
+then
+    echo "*** Make sure ffmpeg, pv, and mediainfo are installed! ***"
+    exit
+fi
+
 find . -type f \( -name "*.avi" -o -name "*.mp4" -o -name "*.mkv" ! -name "*265*" \) -exec sh -c '
   for f do
-		rm /tmp/ffmpeg
-		OLD=$(du -h "$f"| cut -f 1)
-		echo "Converting "$f""
-		mediainfo "$f"|grep HEVC || pv -c -pte "$f" | ffmpeg -v quiet -i pipe:0 -v warning \
-       		-threads 12 -loglevel info -nostdin -y \
-        	-hwaccel nvdec -hwaccel_output_format cuda \
-        	-i "$f"  \
-		-hide_banner \
-        	-preset slow \
-        	-crf 24 \
-        	-c:a copy \
-        	-c:v hevc_nvenc \
-        	"${f%.*}-H265.mkv" 2>/tmp/ffmpeg & sleep 1s ; tail --lines=1 -f /tmp/ffmpeg  && rm -rf "$f" |NEW=$(du -h "${f%.*}"-H265.mkv | cut -f 1)
+                OLD=$(du -h "$f"| cut -f 1)
+                echo "Converting "$f""
+                mediainfo "$f"|grep HEVC || pv -c -pte "$f" | ffmpeg -v quiet -i pipe:0 -v warning \
+                -threads 12 -loglevel info -nostdin -y \
+                -hwaccel nvdec -hwaccel_output_format cuda \
+                -i "$f"  \
+                -hide_banner \
+                -preset slow \
+                -crf 24 \
+                -c:a copy \
+                -c:v hevc_nvenc \
+                "${f%.*}-H265.mkv" 2>/tmp/ffmpeg && rm -rf "$f" 
+                 NEW=$(du -h "${f%.*}"-H265.mkv | cut -f 1)
  
-       	echo "Original Size = "$OLD"" 
-	echo "New Size = "$NEW"" 
+                echo "Original Size = "$OLD"" 
+                echo "New Size = "$NEW"" 
 done  ' sh {} +
