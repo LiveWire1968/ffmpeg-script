@@ -1,29 +1,37 @@
 #!/usr/bin/bash
 # Convert Folder including subdirectories to H265
 # DELETES files after conversion
+# shows pv progress and ffmpeg stats
 
-if ! type pv mediainfo ffmpeg  &> /dev/null
+if ! type pv ffprobe ffmpeg  &> /dev/null
 then
-    echo "*** Make sure ffmpeg, pv, and mediainfo are installed! ***"
+    echo "*** Make sure ffmpeg, pv, and ffprobe are installed! ***"
     exit
 fi
 
 find . -type f \( -name "*.avi" -o -name "*.mp4" -o -name "*.mkv" ! -name "*265*" \) -exec sh -c '
   for f do
-                OLD=$(du -h "$f"| cut -f 1)
-                echo "Converting "$f""
-                mediainfo "$f"|grep HEVC || pv -c -pte "$f" | ffmpeg -v quiet -i pipe:0 -v warning \
-                -threads 12 -loglevel info -nostdin -y \
-                -hwaccel nvdec -hwaccel_output_format cuda \
+                echo "$f" > /tmp/ffmpegfile
+                OLD=$(du --block-size=1 "$f"| cut -f 1)
+                BASE=$(basename "$f")
+                echo "Converting "$BASE""
+                 ffprobe -loglevel quiet "$f"|grep HEVC || pv -c -pte "$f"  | ffmpeg -i "pipe:0" \
+                -v quiet -stats -y -vsync 0 \
+                -threads 1 -loglevel panic -nostdin -y \
+                -hwaccel cuda -hwaccel_output_format cuda \
                 -i "$f"  \
                 -hide_banner \
-                -preset slow \
-                -crf 24 \
                 -c:a copy \
                 -c:v hevc_nvenc \
-                "${f%.*}-H265.mkv" 2>/tmp/ffmpeg && rm -rf "$f" 
-                 NEW=$(du -h "${f%.*}"-H265.mkv | cut -f 1)
- 
-                echo "Original Size = "$OLD"" 
-                echo "New Size = "$NEW"" 
+                -preset p5 \
+                "${f%.*}-H265.mkv" && rm -rf "$f" 
+                 TEMP=$(cat /tmp/ffmpegfile)
+                 NEW=$(du --block-size=1 "${TEMP%.*}"-H265.mkv | cut -f 1)
+                ROLD=$(echo "$OLD" | numfmt --to=iec)           
+                RNEW=$(echo "$NEW" | numfmt --to=iec)           
+                DIFF=$(($OLD-$NEW))
+                DIFF2=$(echo "$DIFF" | numfmt --to=iec)
+                echo "Original Size "$ROLD" New Size "$RNEW" = "$DIFF2" Difference" 
 done  ' sh {} +
+
+
