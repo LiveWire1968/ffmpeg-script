@@ -14,6 +14,8 @@ find . -type f \( -name "*.avi" -o -name "*.mp4" -o -name "*.mkv" ! -name "*265*
                 echo "$f" > /tmp/ffmpegfile
                 OLD=$(du --block-size=1 "$f"| cut -f 1)
                 BASE=$(basename "$f")
+                clear
+                echo "---------------"
                 echo "Converting "$BASE""
                  ffprobe -loglevel quiet "$f"|grep HEVC || pv -c -pte "$f"  | ffmpeg -i "pipe:0" \
                 -v quiet -stats -y -vsync 0 \
@@ -32,6 +34,5 @@ find . -type f \( -name "*.avi" -o -name "*.mp4" -o -name "*.mkv" ! -name "*265*
                 DIFF=$(($OLD-$NEW))
                 DIFF2=$(echo "$DIFF" | numfmt --to=iec)
                 echo "Original Size "$ROLD" New Size "$RNEW" = "$DIFF2" Difference" 
+                echo "----------------"
 done  ' sh {} +
-
-
